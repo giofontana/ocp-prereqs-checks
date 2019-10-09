@@ -1,0 +1,4 @@
+---
+- hosts: all
+  roles:
+  - { role: ocp-benchmarks, become: yes }

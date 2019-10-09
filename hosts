@@ -1,0 +1,259 @@
+[OSEv3:vars]
+
+###########################################################################
+### Ansible Vars
+###########################################################################
+timeout=60
+ansible_user=root
+ansible_become=yes
+
+###########################################################################
+### OpenShift Basic Vars
+###########################################################################
+
+openshift_deployment_type=openshift-enterprise
+
+openshift_disable_check="disk_availability,memory_availability,docker_image_availability"
+
+# OpenShift Version:
+# If you modify the openshift_image_tag or the openshift_pkg_version variables after the cluster is set up, then an upgrade can be triggered, resulting in downtime.
+# If openshift_image_tag is set, its value is used for all hosts in system container environments, even those that have another version installed. If
+# Use this variable to specify a container image tag to install or configure.
+#openshift_pkg_version is set, its value is used for all hosts in RPM-based environments, even those that have another version installed.
+#openshift_image_tag=v3.11.51
+# Use this variable to specify an RPM version to install or configure.
+#openshift_pkg_version=-3.11.51
+#openshift_release=v3.11.51
+
+
+# Node Groups
+openshift_node_groups=[{'name': 'node-config-master', 'labels': ['node-role.kubernetes.io/master=true','runtime=docker']}, {'name': 'node-config-infra', 'labels': ['node-role.kubernetes.io/infra=true','runtime=cri-o']}, {'name': 'node-config-compute', 'labels': ['node-role.kubernetes.io/compute=true','runtime=docker'], 'edits': [{ 'key': 'kubeletArguments.pods-per-core','value': ['20']}]}]
+# Configure node kubelet arguments. pods-per-core is valid in OpenShift Origin 1.3 or OpenShift Container Platform 3.3 and later. -> These  need to go into the above
+# openshift_node_kubelet_args={'pods-per-core': ['10'], 'max-pods': ['250'], 'image-gc-high-threshold': ['85'], 'image-gc-low-threshold': ['75']}
+
+# Configure logrotate scripts
+# See: https://github.com/nickhammond/ansible-logrotate
+logrotate_scripts=[{"name": "syslog", "path": "/var/log/cron\n/var/log/maillog\n/var/log/messages\n/var/log/secure\n/var/log/spooler\n", "options": ["daily", "rotate 7","size 500M", "compress", "sharedscripts", "missingok"], "scripts": {"postrotate": "/bin/kill -HUP `cat /var/run/syslogd.pid 2> /dev/null` 2> /dev/null || true"}}]
+
+# Deploy Operator Lifecycle Manager Tech Preview
+openshift_enable_olm=true
+
+###########################################################################
+### OpenShift Registries Locations
+###########################################################################
+
+#oreg_url=registry.access.redhat.com/openshift3/ose-${component}:${version}
+#oreg_url=registry.redhat.io/openshift3/ose-{component}:${version}
+
+# For Operator Framework Images
+#openshift_additional_registry_credentials=[{'host':'registry.connect.redhat.com','user':'giofontana','password':${oreg_auth_password},'test_image':'mongodb/enterprise-operator:0.3.2'}]
+
+openshift_examples_modify_imagestreams=true
+
+
+# Set this line to enable NFS
+openshift_enable_unsupported_configurations=True
+
+###########################################################################
+### OpenShift Master Vars
+###########################################################################
+
+openshift_master_api_port=8443
+openshift_master_console_port=8443
+
+openshift_master_cluster_hostname=master-1.ocp.rh
+openshift_master_cluster_public_hostname=console.ws.rhbr-labs.com
+openshift_master_default_subdomain=apps.ws.rhbr-labs.com
+openshift_master_overwrite_named_certificates=True
+
+# Audit log
+# openshift_master_audit_config={"enabled": true, "auditFilePath": "/var/log/openpaas-oscp-audit/openpaas-oscp-audit.log", "maximumFileRetentionDays": 14, "maximumFileSizeMegabytes": 500, "maximumRetainedFiles": 5}
+
+###########################################################################
+### OpenShift Network Vars
+###########################################################################
+
+osm_cluster_network_cidr=10.128.0.0/14
+openshift_portal_net=172.30.0.0/16
+
+os_sdn_network_plugin_name='redhat/openshift-ovs-networkpolicy'
+
+###########################################################################
+### OpenShift Authentication Vars
+###########################################################################
+
+# HTPASSWD
+openshift_master_identity_providers=[{'name': 'htpasswd_auth', 'login': 'true', 'challenge': 'true', 'kind': 'HTPasswdPasswordIdentityProvider'}]
+
+# HTPASSWD dependencies
+openshift_master_htpasswd_file=/root/htpasswd.openshift
+
+
+###########################################################################
+### OpenShift Metrics and Logging Vars
+###########################################################################
+
+#########################
+# Prometheus Metrics
+#########################
+openshift_cluster_monitoring_operator_install=true
+#openshift_cluster_monitoring_operator_prometheus_storage_enabled=true
+#openshift_cluster_monitoring_operator_alertmanager_storage_enabled=true
+#openshift_cluster_monitoring_operator_prometheus_storage_capacity=10Gi
+#openshift_cluster_monitoring_operator_alertmanager_storage_capacity=2Gi
+
+
+########################
+# Cluster Metrics
+########################
+
+openshift_metrics_install_metrics=True
+
+openshift_metrics_storage_kind=nfs
+openshift_metrics_storage_access_modes=['ReadWriteOnce']
+openshift_metrics_storage_nfs_directory=/srv/nfs
+openshift_metrics_storage_nfs_server=bastion.ocp.rh
+openshift_metrics_storage_nfs_options='*(rw,root_squash)'
+openshift_metrics_storage_volume_name=metrics
+openshift_metrics_storage_volume_size=10Gi
+openshift_metrics_storage_labels={'storage': 'metrics'}
+openshift_metrics_cassandra_pvc_storage_class_name=''
+
+
+openshift_metrics_hawkular_nodeselector={"node-role.kubernetes.io/infra": "true"}
+openshift_metrics_cassandra_nodeselector={"node-role.kubernetes.io/infra": "true"}
+openshift_metrics_heapster_nodeselector={"node-role.kubernetes.io/infra": "true"}
+
+# Store Metrics for 2 days
+openshift_metrics_duration=2
+
+# Suggested Quotas and limits for Prometheus components:
+#openshift_prometheus_memory_requests=2Gi
+#openshift_prometheus_cpu_requests=750m
+#openshift_prometheus_memory_limit=2Gi
+#openshift_prometheus_cpu_limit=750m
+#openshift_prometheus_alertmanager_memory_requests=300Mi
+#openshift_prometheus_alertmanager_cpu_requests=200m
+#openshift_prometheus_alertmanager_memory_limit=300Mi
+#openshift_prometheus_alertmanager_cpu_limit=200m
+#openshift_prometheus_alertbuffer_memory_requests=300Mi
+#openshift_prometheus_alertbuffer_cpu_requests=200m
+#openshift_prometheus_alertbuffer_memory_limit=300Mi
+#openshift_prometheus_alertbuffer_cpu_limit=200m
+
+
+# Grafana
+openshift_grafana_node_selector={"node-role.kubernetes.io/infra":"true"}
+openshift_grafana_storage_type=dynamic
+openshift_grafana_pvc_size=2Gi
+openshift_grafana_node_exporter=true
+
+########################
+# Cluster Logging
+########################
+
+openshift_logging_install_logging=True
+openshift_logging_install_eventrouter=True
+
+openshift_logging_storage_kind=nfs
+openshift_logging_storage_access_modes=['ReadWriteOnce']
+openshift_logging_storage_nfs_directory=/srv/nfs
+openshift_logging_storage_nfs_options='*(rw,root_squash)'
+openshift_logging_storage_nfs_server=bastion.ocp.rh
+openshift_logging_storage_volume_name=logging
+openshift_logging_storage_volume_size=10Gi
+openshift_logging_storage_labels={'storage': 'logging'}
+openshift_logging_es_pvc_storage_class_name=''
+openshift_logging_es_memory_limit=8Gi
+openshift_logging_es_cluster_size=1
+openshift_logging_curator_default_days=2
+
+openshift_logging_kibana_nodeselector={"node-role.kubernetes.io/infra": "true"}
+openshift_logging_curator_nodeselector={"node-role.kubernetes.io/infra": "true"}
+openshift_logging_es_nodeselector={"node-role.kubernetes.io/infra": "true"}
+openshift_logging_eventrouter_nodeselector={"node-role.kubernetes.io/infra": "true"}
+
+###########################################################################
+### OpenShift Router and Registry Vars
+###########################################################################
+
+# default selectors for router and registry services
+# openshift_router_selector='node-role.kubernetes.io/infra=true'
+# openshift_registry_selector='node-role.kubernetes.io/infra=true'
+
+openshift_hosted_router_replicas=1
+
+# openshift_hosted_router_certificate={"certfile": "/path/to/router.crt", "keyfile": "/path/to/router.key", "cafile": "/path/to/router-ca.crt"}
+
+openshift_hosted_registry_replicas=1
+openshift_hosted_registry_pullthrough=true
+openshift_hosted_registry_acceptschema2=true
+openshift_hosted_registry_enforcequota=true
+
+openshift_hosted_registry_storage_kind=nfs
+openshift_hosted_registry_storage_access_modes=['ReadWriteMany']
+openshift_hosted_registry_storage_host=bastion.ocp.rh
+openshift_hosted_registry_storage_nfs_directory=/srv/nfs
+openshift_hosted_registry_storage_volume_name=registry
+openshift_hosted_registry_storage_volume_size=10Gi
+
+###########################################################################
+### OpenShift Service Catalog Vars
+###########################################################################
+
+# default=true
+openshift_enable_service_catalog=true
+
+# default=true
+template_service_broker_install=true
+openshift_template_service_broker_namespaces=['openshift-templates']
+
+# default=true
+ansible_service_broker_install=true
+ansible_service_broker_local_registry_whitelist=['.*-apb$']
+
+###########################################################################
+### OpenShift Hosts
+###########################################################################
+# openshift_node_labels DEPRECATED
+# openshift_node_problem_detector_install
+
+[OSEv3:children]
+#lb
+masters
+etcd
+nodes
+nfs
+
+#[lb]
+#loadbalancer.607c.internal
+
+[masters]
+master-1.ocp.rh
+
+[masters:vars]
+openshift_node_group_name='node-config-master'
+
+[etcd:children]
+masters
+
+[infras]
+infra-1.ocp.rh 
+
+[infras:vars]
+openshift_node_group_name='node-config-infra'
+
+[apps]
+app-1.ocp.rh
+app-2.ocp.rh
+
+[apps:vars]
+openshift_node_group_name='node-config-compute'
+
+[nodes:children]
+masters
+infras
+apps
+
+[nfs]
+bastion.ocp.rh

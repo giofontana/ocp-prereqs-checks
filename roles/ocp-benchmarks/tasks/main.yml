@@ -1,0 +1,18 @@
+---
+
+# install benchmark package:
+
+  - name: Installing benchmark packages
+    yum:
+      name: ['fio', 'qperf']
+      state: present
+
+  - name: Run Flexible IO Tester (fio)
+    shell: "fio --name=seqwrite --rw=write --direct=1 --ioengine=libaio --bs=32k --numjobs=4 --size=10M --runtime=600 --group_reporting | grep IOPS"
+    register: fio_result
+
+  - set_fact:
+      benchmark_result: "{{ benchmark_result|default([]) + [ {'server': inventory_hostname, 'iops': fio_result.stdout} ] }}"
+
+  - debug:
+      msg: "{{ benchmark_result }}"
